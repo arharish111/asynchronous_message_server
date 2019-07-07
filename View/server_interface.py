@@ -1,3 +1,5 @@
+from tkinter import *
+from tkinter import ttk
 from asynchronous_message_server.Model.server import *
 
 class serverUI(threading.Thread):

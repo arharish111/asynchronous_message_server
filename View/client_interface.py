@@ -1,3 +1,7 @@
+from tkinter import *
+from tkinter import ttk
+import threading
+import socket
 from asynchronous_message_server.Model.client import *
 
 class clientInterface(threading.Thread):

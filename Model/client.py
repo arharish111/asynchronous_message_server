@@ -1,3 +1,5 @@
+import threading
+import socket
 from asynchronous_message_server.View.client_interface import *
 class Client(threading.Thread):
 
