@@ -3,15 +3,17 @@ import socket
 from asynchronous_message_server.View.client_interface import *
 class Client(threading.Thread):
 
-    def __init__(self, userName, selectUserUI):
+    def __init__(self, userName, mainWindow):
         threading.Thread.__init__(self)
         self.userName = userName
+        self.mainUI = mainWindow
         self.host = 'localhost'
         self.port = 8888
         self.postMethodName = 'POST'
         self.getMethodName = 'GET'
         self.sendUserNameMessage = 'send-username'
         self.sendComposedMessage = 'compose-message'
+        self.checkMessage = 'check-message'
         self.start()
 
     def run(self) -> None:
@@ -45,10 +47,11 @@ class Client(threading.Thread):
                     self.userUI = clientInterface(self.userName, self)
                 else:
                     self.soc.close()
-                    print('Taken')
+                    self.mainUI.displayMessageBox()
 
 
     def postMeassage(self, rawMessage, toUser):
+
         print(rawMessage)
         self.headerLines['data'] = rawMessage
         self.headerLines['Message-Type'] = self.sendComposedMessage
@@ -64,6 +67,24 @@ class Client(threading.Thread):
             self.result = self.httpMessage.parseResposeMessage(self.response)
             self.soc.close()
             print(self.result)
+
+    def getMessage(self):
+
+        self.headerLines['Method'] = self.getMethodName
+        self.headerLines['Message-Type'] = self.checkMessage
+        framedGetMessage = self.httpMessage.frameHttpRequest(self.headerLines)
+        try:
+            self.soc.sendall(framedGetMessage.encode('utf-8'))
+        except Exception as e:
+            print(e.args[1])
+        else:
+            self.response = self.soc.recv(1024)
+            self.result = self.httpMessage.parseResposeMessage(self.response)
+            if self.result['Status'] == 'True':
+                self.userUI.displayReceivedMessage(self.result['Data'])
+            else:
+                self.userUI.displayReceivedMessage(None)
+            self.soc.close()
 
 class httpRequestMessage:
 
@@ -91,7 +112,9 @@ class httpRequestMessage:
 
         parsedData = resposeData.decode('utf-8')
         parsedList = parsedData.split('\n')
-        parsedDict = {'Respose-Code': parsedList[0].split(" ")[0]}
+        print(parsedData)
+        print(parsedList)
+        parsedDict = {'Respose-Code': parsedList[0].split("\n")[0]}
         lenghtOfList = len(parsedList)
         for i in range(1, lenghtOfList):
             l = parsedList[i].split(": ", 1)

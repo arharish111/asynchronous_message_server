@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter import messagebox
 import threading
 import socket
 from asynchronous_message_server.Model.client import *
@@ -21,7 +22,8 @@ class clientInterface(threading.Thread):
                                                command=self.composeMessageCallBack)
         self.composeMessageButton.pack()
 
-        self.checkMessageButton = ttk.Button(self.window, text='Check for Messages')
+        self.checkMessageButton = ttk.Button(self.window, text='Check for Messages',
+                                             command=self.checkMessageCallBack)
         self.checkMessageButton.pack()
 
         self.window.mainloop()
@@ -29,6 +31,7 @@ class clientInterface(threading.Thread):
     def composeMessageCallBack(self):
 
         self.composeMessageButton.state(['disabled'])
+        self.checkMessageButton.state(['disabled'])
 
         self.textBox = Text(self.window, width=40, height=10)
         self.textBox.pack()
@@ -58,9 +61,34 @@ class clientInterface(threading.Thread):
         message = self.textBox.get('1.0', 'end')
         message = message.split("\n")[0]
         print(message)
-        print('Hello')
         self.connect.postMeassage(message, self.toUser)
+        self.notifyMessageSent()
         self.window.destroy()
+
+    def notifyMessageSent(self):
+        messagebox.showinfo('Info', 'Message sent Successfully')
+
+    def checkMessageCallBack(self):
+
+        self.composeMessageButton.state(['disabled'])
+        self.checkMessageButton.state(['disabled'])
+
+        self.displayText = Text(self.window, width=40, height=10)
+        self.displayText.pack()
+
+        doneButton = ttk.Button(self.window, text='Done', command=self.closeWindow)
+        doneButton.pack()
+
+        self.connect.getMessage()
+
+    def displayReceivedMessage(self, messageToDispaly):
+
+        if messageToDispaly:
+            self.displayText.insert('1.0', messageToDispaly)
+        else:
+            self.displayText.insert('1.0', 'No messages at this moment')
+
+        #self.closeWindow()
 
     def closeWindow(self):
         self.window.destroy()
@@ -98,19 +126,28 @@ class selectUserUI(threading.Thread):
         self.userOptionLabel = ttk.Label(self.master, text='Select User')
         self.userOptionLabel.grid(row=0, column=0, columnspan=3)
 
-        self.userAButton = ttk.Button(self.master, text='A', command=lambda: selectUserCallBack('A', self.master))
+        self.userAButton = ttk.Button(self.master, text='A', command=lambda: selectUserCallBack('A', self))
         self.userAButton.grid(row=1, column=0)
 
-        self.userBButton = ttk.Button(self.master, text='B', command=lambda: selectUserCallBack('B', self.master))
+        self.userBButton = ttk.Button(self.master, text='B', command=lambda: selectUserCallBack('B', self))
         self.userBButton.grid(row=1, column=1)
 
-        self.userCButton = ttk.Button(self.master, text='C', command=lambda: selectUserCallBack('C', self.master))
+        self.userCButton = ttk.Button(self.master, text='C', command=lambda: selectUserCallBack('C', self))
         self.userCButton.grid(row=1, column=2)
+
+        exitButton = ttk.Button(self.master, text='Exit', command=self.closeWindow)
+        exitButton.grid(row=2, column=1)
 
         self.master.mainloop()
 
+    def closeWindow(self):
+        self.master.destroy()
+
+    def displayMessageBox(self):
+        messagebox.showerror(title='Error', message='This user name is taken.Please select another user')
+
 def selectUserCallBack(userName, master):
-    Client(userName, master)
+     Client(userName, master)
 
 def main():
     selectUserUI()

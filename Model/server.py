@@ -55,24 +55,52 @@ class Connections(threading.Thread):
             parsedDict[l[0]] = l[1]
         print(parsedDict)
         self.httpRespose = httpResponseMessage()
+
         if parsedDict['Message-Type'] == 'send-username':
+
             self.headerLines['Message-Type'] = 'respond-username'
+
             if userDict[parsedDict['User-Agent']]:
                 self.headerLines['Status'] = 'False'
-                return self.httpRespose.framehttpRespose(self.headerLines)
             else:
                 userDict[parsedDict['User-Agent']] = 1
-                return self.httpRespose.framehttpRespose(self.headerLines)
+
         elif parsedDict['Message-Type'] == 'compose-message':
+
             self.headerLines['Message-Type'] = 'respond-compose'
+
             if parsedDict['To-User'] == 'A':
                 aList.append(parsedDict['Data'])
+
             elif parsedDict['To-User'] == 'B':
                 bList.append(parsedDict['Data'])
+
             else:
-                bList.append(parsedDict['Data'])
+                cList.append(parsedDict['Data'])
             userDict[parsedDict['User-Agent']] = 0
-            return self.httpRespose.framehttpRespose(self.headerLines)
+
+        elif parsedDict['Message-Type'] == 'check-message':
+
+            self.headerLines['Message-Type'] = 'respond-check'
+
+            if parsedDict['User-Agent'] == 'A':
+                self.headerLines['From-List'] = 'A'
+                if not aList:
+                    self.headerLines['Status'] = 'False'
+
+            elif parsedDict['User-Agent'] == 'B':
+                self.headerLines['From-List'] = 'B'
+                if not bList:
+                    self.headerLines['Status'] = 'False'
+
+            else:
+                self.headerLines['From-List'] = 'C'
+                if not cList:
+                    self.headerLines['Status'] = 'False'
+
+            userDict[parsedDict['User-Agent']] = 0
+
+        return self.httpRespose.framehttpRespose(self.headerLines)
 
 class httpResponseMessage:
 
@@ -92,7 +120,29 @@ class httpResponseMessage:
         self.httpString += '\n' + 'Server: ' + headerDict['Server'] + '\n' + 'Content-Type: ' + self.contentType + \
                             '\n' + 'Message-Type: ' + headerDict['Message-Type'] + \
                            '\n' + 'Status: ' + headerDict['Status']
+        if headerDict['Message-Type'] == 'respond-check':
+            if headerDict['Status'] == 'True':
+                if headerDict['From-List'] == 'A':
+                    framedString = self.listToString(aList)
+                    aList.clear()
+                elif headerDict['From-List'] == 'B':
+                    framedString = self.listToString(bList)
+                    bList.clear()
+                else:
+                    framedString = self.listToString(cList)
+                    cList.clear()
+                self.httpString += '\n' + 'Data: ' + framedString
+
         return self.httpString
+
+    def listToString(self, messageList):
+
+        string = ''
+        for s in messageList:
+            string += s + ','
+        return string
+
+
 
 
 #if __name__ == '__main__':main()
