@@ -1,6 +1,13 @@
+'''
+Student Name: Harish Harish
+Student ID: 1001682418
+'''
 import threading
 import socket
+from datetime import datetime
 from asynchronous_message_server.View.client_interface import *
+
+# Threaded class to handle client connection
 class Client(threading.Thread):
 
     def __init__(self, userName, mainWindow):
@@ -20,43 +27,41 @@ class Client(threading.Thread):
 
         try:
             self.soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.soc.connect((self.host, self.port))
+            self.soc.connect((self.host, self.port))  # making connection with the server
         except Exception as e:
             print(e.args[1])
         else:
-            print(self.soc.getpeername())
             self.hostNameWithPort = str(self.soc.getsockname())
-            print(self.hostNameWithPort)
             self.headerLines = {'Method': self.postMethodName,
                                 'data': self.userName,
                                 'Host': self.hostNameWithPort,
                                 'User-Agent': self.userName,
-                                'Message-Type': self.sendUserNameMessage
+                                'Message-Type': self.sendUserNameMessage,
+                                'Date': str(datetime.now())
                                 }
             self.httpMessage = httpRequestMessage()
             framedHttpMessage = self.httpMessage.frameHttpRequest(self.headerLines)
             try:
-                self.soc.sendall(framedHttpMessage.encode('utf-8'))
+                self.soc.sendall(framedHttpMessage.encode('utf-8'))  # sending HTTP message to the server
             except Exception as e:
                 print(e.args[1])
             else:
-                self.response = self.soc.recv(1024)
+                self.response = self.soc.recv(1024)  # Receiving HTTP message from the server
                 self.result = self.httpMessage.parseResposeMessage(self.response)
-                print(self.result)
                 if self.result['Status'] == 'True':
                     self.userUI = clientInterface(self.userName, self)
                 else:
                     self.soc.close()
                     self.mainUI.displayMessageBox()
 
-
+# to send POST HTTP message to the server
     def postMeassage(self, rawMessage, toUser):
 
-        print(rawMessage)
         self.headerLines['data'] = rawMessage
+        self.headerLines['Content-Length'] = str(len(rawMessage.encode('utf-8')))
         self.headerLines['Message-Type'] = self.sendComposedMessage
         self.headerLines['To-User'] = toUser
-        print(self.headerLines)
+        self.headerLines['Date'] = str(datetime.now())
         framedComposedMessage = self.httpMessage.frameHttpRequest(self.headerLines)
         try:
             self.soc.sendall(framedComposedMessage.encode('utf-8'))
@@ -66,12 +71,13 @@ class Client(threading.Thread):
             self.response = self.soc.recv(1024)
             self.result = self.httpMessage.parseResposeMessage(self.response)
             self.soc.close()
-            print(self.result)
 
+# to send GET HTTP message to the server
     def getMessage(self):
 
         self.headerLines['Method'] = self.getMethodName
         self.headerLines['Message-Type'] = self.checkMessage
+        self.headerLines['Date'] = str(datetime.now())
         framedGetMessage = self.httpMessage.frameHttpRequest(self.headerLines)
         try:
             self.soc.sendall(framedGetMessage.encode('utf-8'))
@@ -84,8 +90,9 @@ class Client(threading.Thread):
                 self.userUI.displayReceivedMessage(self.result['Data'])
             else:
                 self.userUI.displayReceivedMessage(None)
-            self.soc.close()
+            self.soc.close()  # closing the connection
 
+# To frame and parse HTTP messages
 class httpRequestMessage:
 
     def __init__(self):
@@ -103,29 +110,20 @@ class httpRequestMessage:
             self.httpString += self.getRequestLine
         self.httpString += '\n' + 'Host: ' + headerDict['Host'] + '\n' + 'User-Agent: ' + \
                            headerDict['User-Agent'] + '\n' + 'Content-Type: ' + \
-                           self.contentType + '\n' + 'Message-Type: ' + headerDict['Message-Type']
+                           self.contentType + '\n' + 'Message-Type: ' + headerDict['Message-Type'] + \
+                           '\n' + 'Date: ' + headerDict['Date']
         if headerDict['Message-Type'] == 'compose-message':
-            self.httpString += '\n' + 'Data: ' + headerDict['data'] + '\n' + 'To-User: ' + headerDict['To-User']
+            self.httpString += '\n' + 'Data: ' + headerDict['data'] + '\n' + 'To-User: ' + headerDict['To-User'] + \
+                               '\n' + 'Content-Length: ' + headerDict['Content-Length']
         return self.httpString
 
     def parseResposeMessage(self, resposeData):
 
         parsedData = resposeData.decode('utf-8')
         parsedList = parsedData.split('\n')
-        print(parsedData)
-        print(parsedList)
         parsedDict = {'Respose-Code': parsedList[0].split("\n")[0]}
         lenghtOfList = len(parsedList)
         for i in range(1, lenghtOfList):
             l = parsedList[i].split(": ", 1)
             parsedDict[l[0]] = l[1]
         return parsedDict
-
-
-''' conn = http.client.HTTPConnection('localhost', 8000)
-conn.request("GET", "/")
-r1 = conn.getresponse()
-print(r1.status, r1.reason)
-data1 = r1.read()
-print(data1)
-conn.close()'''
