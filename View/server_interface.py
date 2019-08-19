@@ -1,7 +1,12 @@
+'''
+Student Name: Harish Harish
+Student ID: 1001682418
+'''
 from tkinter import *
 from tkinter import ttk
 from asynchronous_message_server.Model.server import *
 
+# For server GUI
 class serverUI(threading.Thread):
 
     def __init__(self):
@@ -12,16 +17,19 @@ class serverUI(threading.Thread):
     def run(self) -> None:
         self.window = Tk()
 
-        self.textBox = Text(self.window, width=40, height=30)
+        self.textBox = Text(self.window, width=50, height=30)
         self.textBox.pack()
 
-        #ttk.Button(self.window, text='start', command=lambda: startCallBack()).pack()
+        ttk.Button(self.window, text='Close', command=self.closeWindow).pack()
 
         self.window.mainloop()
 
     def addToTextBox(self, message):
 
         self.textBox.insert('end', message)
+
+    def closeWindow(self):
+        self.window.destroy()
 
 def main():
     gui = serverUI()
